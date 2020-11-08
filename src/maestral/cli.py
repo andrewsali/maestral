@@ -1283,7 +1283,7 @@ def install_shell_completion(shell: str):
         f.write(script)
         f.write("\n")
 
-    if rc_path is not None:
+    if rc_path and rc_script:
         with open(rc_path, "a") as f:
             f.write(rc_script)
             f.write("\n")
