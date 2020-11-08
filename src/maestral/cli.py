@@ -1249,8 +1249,48 @@ def account_info(config_name: str) -> None:
         click.echo("")
 
 
+@main.command(help_priority=24, help="Installs tab auto-completion for your shell.")
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
+def install_shell_completion(shell: str):
+
+    from maestral.utils.appdirs import get_home_dir, get_data_path
+
+    script = os.popen(f"_MAESTRAL_COMPLETE=source_{shell} maestral").read()
+
+    home = get_home_dir()
+
+    if shell == "fish":
+        script_path = osp.join(home, ".config/fish/completions/maestral.fish")
+        rc_path = None
+        rc_script = None
+    elif shell == "bash":
+        script_path = osp.join(
+            home, ".local/share/bash-completion/completions/maestral.sh"
+        )
+        rc_path = osp.join(home, ".bashrc")
+        rc_script = f"\n. {script_path!r}"
+
+    else:
+        script_path = get_data_path("maestral", "maestral-completion-zsh.sh")
+        rc_path = osp.join(home, ".zshrc")
+        rc_script = f"\nautoload -Uz compinit && compinit\n. {script_path!r}"
+
+    d = os.path.dirname(script_path)
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+    with open(script_path, "w") as f:
+        f.write(script)
+        f.write("\n")
+
+    if rc_path is not None:
+        with open(rc_path, "a") as f:
+            f.write(rc_script)
+            f.write("\n")
+
+
 @main.command(
-    help_priority=24, help="Returns the version number and other information."
+    help_priority=25, help="Returns the version number and other information."
 )
 def about() -> None:
 
