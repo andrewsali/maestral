@@ -1261,32 +1261,38 @@ def install_shell_completion(shell: str):
 
     if shell == "fish":
         script_path = osp.join(home, ".config/fish/completions/maestral.fish")
-        rc_path = None
+        rc_file = None
         rc_script = None
     elif shell == "bash":
         script_path = osp.join(
             home, ".local/share/bash-completion/completions/maestral.sh"
         )
-        rc_path = osp.join(home, ".bashrc")
+        rc_file = ".bashrc"
         rc_script = f"\n. {script_path!r}"
 
     else:
         script_path = get_data_path("maestral", "maestral-completion-zsh.sh")
-        rc_path = osp.join(home, ".zshrc")
+        rc_file = ".zshrc"
         rc_script = f"\nautoload -Uz compinit && compinit\n. {script_path!r}"
 
-    d = os.path.dirname(script_path)
-    if not os.path.exists(d):
-        os.makedirs(d)
+    d = osp.dirname(script_path)
+    os.makedirs(d, exist_ok=True)
 
     with open(script_path, "w") as f:
         f.write(script)
         f.write("\n")
 
-    if rc_path and rc_script:
+    click.echo(f"Installed shell completion script to '{script_path}'")
+
+    if rc_file and rc_script:
+        rc_path = osp.join(home, rc_file)
         with open(rc_path, "a") as f:
             f.write(rc_script)
             f.write("\n")
+
+        click.echo(f"Updated {rc_file}")
+
+    click.echo(f"Shell completion installed. Please restart your session.")
 
 
 @main.command(
