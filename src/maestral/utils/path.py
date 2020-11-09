@@ -352,6 +352,23 @@ def move(
         return err
 
 
+def removeprefix(self: str, prefix: str) -> str:
+    """
+    Removes the given prefix from a string. Only the first instance of the prefix is
+    removed. The original string is returned if it does not start with the given prefix.
+
+    This follows the Python 3.9 implementation of ``str.removeprefix``.
+
+    :param self: Original string.
+    :param prefix: Prefix to remove.
+    :returns: String without prefix.
+    """
+    if self.startswith(prefix):
+        return self[len(prefix) :]
+    else:
+        return self[:]
+
+
 def content_hash(
     local_path: str, chunk_size: int = 1024
 ) -> Tuple[Optional[str], Optional[float]]:

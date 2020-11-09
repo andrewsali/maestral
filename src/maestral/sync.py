@@ -119,6 +119,7 @@ from maestral.utils.path import (
     is_child,
     is_equal_or_child,
     content_hash,
+    removeprefix,
 )
 from maestral.utils.appdirs import get_data_path, get_home_dir
 
@@ -4171,23 +4172,6 @@ def add_to_bin(d: Dict[Any, List], key: Hashable, value: Any):
         d[key].append(value)
     except KeyError:
         d[key] = [value]
-
-
-def removeprefix(self: str, prefix: str) -> str:
-    """
-    Removes the given prefix from a string. Only the first instance of the prefix is
-    removed. The original string is returned if it does not start with the given prefix.
-
-    This follows the Python 3.9 implementation of ``str.removeprefix``.
-
-    :param self: Original string.
-    :param prefix: Prefix to remove.
-    :returns: String without prefix.
-    """
-    if self.startswith(prefix):
-        return self[len(prefix) :]
-    else:
-        return self[:]
 
 
 def _exc_info(exc: BaseException) -> ExecInfoType:
