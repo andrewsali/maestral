@@ -18,11 +18,24 @@ import os.path as osp
 import functools
 import textwrap
 import time
-from typing import Optional, List, Dict, Iterable, Callable, Union, TypeVar, cast
+from typing import (
+    Optional,
+    List,
+    Dict,
+    Iterable,
+    Callable,
+    Union,
+    TypeVar,
+    TYPE_CHECKING,
+    cast,
+)
 
 # external imports
 import click
 import Pyro5.errors  # type: ignore
+
+if TYPE_CHECKING:
+    from click.shell_completion import CompletionItem
 
 # local imports
 from maestral import __version__
@@ -375,6 +388,80 @@ def _validate_config_name(
         return validate_config_name(value)
     except ValueError:
         raise click.ClickException("Configuration name may not contain any whitespace")
+
+
+# ======================================================================================
+# Custom parameter types
+# ======================================================================================
+
+
+class DropboxPath(click.ParamType):
+    """
+    :param file_okay: controls if a file is a possible value.
+    :param dir_okay: controls if a directory is a possible value.
+    """
+
+    name = "Dropbox path"
+    envvar_list_splitter = osp.pathsep
+
+    def __init__(self, file_ok: bool = True, dir_ok: bool = True) -> None:
+        self.file_ok = file_ok
+        self.dir_ok = dir_ok
+
+    def shell_complete(
+        self,
+        ctx: Optional[click.Context],
+        param: Optional[click.Parameter],
+        incomplete: str,
+    ) -> List["CompletionItem"]:
+
+        from click.shell_completion import CompletionItem
+        from maestral.utils.path import removeprefix
+
+        matches: List[str] = []
+
+        # check if we have been given an absolute path
+        incomplete = incomplete.lstrip("/")
+
+        # get the Maestral config for which to complete paths
+        try:
+            config_name = ctx.params["config_name"]
+        except (KeyError, AttributeError):
+            # attribute error occurs when ctx = None
+            config_name = "maestral"
+
+        # get all matching paths in our local Dropbox folder
+        # TODO: query from server if not too slow
+
+        config = MaestralConfig(config_name)
+        dropbox_dir = config.get("main", "path")
+        local_incomplete = osp.join(dropbox_dir, incomplete)
+        local_dirname = osp.dirname(local_incomplete)
+
+        if osp.isdir(local_dirname):
+
+            with os.scandir(local_dirname) as it:
+                for entry in it:
+                    if entry.path.startswith(local_incomplete):
+                        if (
+                            entry.is_dir()
+                            and self.dir_ok
+                            or entry.is_file()
+                            and self.file_ok
+                        ):
+                            dbx_path = removeprefix(entry.path, dropbox_dir)
+                            matches.append(dbx_path)
+
+        # get all matching excluded items
+
+        for dbx_path in config.get("main", "excluded_items"):
+            if dbx_path.startswith("/" + incomplete):
+                matches.append(dbx_path)
+
+        return [CompletionItem(m.lstrip("/")) for m in matches]
+
+    def __repr__(self):
+        return "DROPBOX_PATH"
 
 
 # ======================================================================================
@@ -889,7 +976,7 @@ def activity(config_name: str) -> None:
 
 
 @main.command(help_priority=10, help="Lists contents of a Dropbox directory.")
-@click.argument("dropbox_path", type=click.Path(), default="")
+@click.argument("dropbox_path", type=DropboxPath(file_ok=False), default="")
 @click.option(
     "-l",
     "--long",
@@ -1102,7 +1189,7 @@ def rebuild_index(config_name: str) -> None:
 
 
 @main.command(help_priority=16, help="Lists old revisions of a file.")
-@click.argument("dropbox_path", type=click.Path())
+@click.argument("dropbox_path", type=DropboxPath())
 @existing_config_option
 @catch_maestral_errors
 def revs(dropbox_path: str, config_name: str) -> None:
@@ -1135,7 +1222,7 @@ def revs(dropbox_path: str, config_name: str) -> None:
 @main.command(
     help_priority=17, help="Restores an old revision of a file to the given path."
 )
-@click.argument("dropbox_path", type=click.Path())
+@click.argument("dropbox_path", type=DropboxPath())
 @click.argument("rev")
 @existing_config_option
 @catch_maestral_errors
@@ -1248,7 +1335,7 @@ def account_info(config_name: str) -> None:
 
 @main.command(help_priority=24, help="Installs tab auto-completion for your shell.")
 @click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
-def install_shell_completion(shell: str):
+def install_shell_completion(shell: str) -> None:
 
     import shlex
     from maestral.utils.appdirs import get_home_dir, get_data_path
@@ -1349,7 +1436,7 @@ def excluded_list(config_name: str) -> None:
     help_priority=1,
     help="Adds a file or folder to the excluded list and re-syncs.",
 )
-@click.argument("dropbox_path", type=click.Path())
+@click.argument("dropbox_path", type=DropboxPath())
 @existing_config_option
 @catch_maestral_errors
 def excluded_add(dropbox_path: str, config_name: str) -> None:
@@ -1374,7 +1461,7 @@ def excluded_add(dropbox_path: str, config_name: str) -> None:
     help_priority=2,
     help="Removes a file or folder from the excluded list and re-syncs.",
 )
-@click.argument("dropbox_path", type=click.Path())
+@click.argument("dropbox_path", type=DropboxPath())
 @existing_config_option
 @catch_maestral_errors
 def excluded_remove(dropbox_path: str, config_name: str) -> None:
