@@ -1264,16 +1264,16 @@ def install_shell_completion(shell: str):
         rc_file = None
         rc_script = None
     elif shell == "bash":
-        script_path = osp.join(
-            home, ".local/share/bash-completion/completions/maestral.sh"
-        )
+        script_path = get_data_path("maestral", "shell-completion-bash.sh")
         rc_file = ".bashrc"
         rc_script = f"\n. {script_path!r}"
 
-    else:
-        script_path = get_data_path("maestral", "maestral-completion-zsh.sh")
+    elif shell == "zsh":
+        script_path = get_data_path("maestral", "shell-completion-zsh.sh")
         rc_file = ".zshrc"
-        rc_script = f"\nautoload -Uz compinit && compinit\n. {script_path!r}"
+        rc_script = f"\n. {script_path!r}"
+    else:
+        raise click.ClickException("Unsupported shell")
 
     d = osp.dirname(script_path)
     os.makedirs(d, exist_ok=True)
@@ -1282,7 +1282,7 @@ def install_shell_completion(shell: str):
         f.write(script)
         f.write("\n")
 
-    click.echo(f"Installed shell completion script to '{script_path}'")
+    click.echo(f"Installed shell completion script to '{script_path}'.")
 
     if rc_file and rc_script:
         rc_path = osp.join(home, rc_file)
@@ -1290,7 +1290,7 @@ def install_shell_completion(shell: str):
             f.write(rc_script)
             f.write("\n")
 
-        click.echo(f"Updated {rc_file}")
+        click.echo(f"Updated {rc_file}.")
 
     click.echo(f"Shell completion installed. Please restart your session.")
 
