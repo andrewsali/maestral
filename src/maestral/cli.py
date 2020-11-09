@@ -1253,9 +1253,10 @@ def account_info(config_name: str) -> None:
 @click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
 def install_shell_completion(shell: str):
 
+    import shlex
     from maestral.utils.appdirs import get_home_dir, get_data_path
 
-    script = os.popen(f"_MAESTRAL_COMPLETE=source_{shell} maestral").read()
+    script = os.popen(f"_MAESTRAL_COMPLETE={shell}_source maestral").read()
 
     home = get_home_dir()
 
@@ -1266,12 +1267,12 @@ def install_shell_completion(shell: str):
     elif shell == "bash":
         script_path = get_data_path("maestral", "shell-completion-bash.sh")
         rc_file = ".bashrc"
-        rc_script = f"\n. {script_path!r}"
+        rc_script = f"\n. {shlex.quote(script_path)}"
 
     elif shell == "zsh":
         script_path = get_data_path("maestral", "shell-completion-zsh.sh")
         rc_file = ".zshrc"
-        rc_script = f"\n. {script_path!r}"
+        rc_script = f"\n. {shlex.quote(script_path)}"
     else:
         raise click.ClickException("Unsupported shell")
 
