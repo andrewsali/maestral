@@ -49,6 +49,11 @@ LEFT, CENTER, RIGHT = range(3)
 T = TypeVar("T")
 
 
+# ======================================================================================
+# CLI dialogs and helper functions
+# ======================================================================================
+
+
 def stop_daemon_with_cli_feedback(config_name: str) -> None:
     """Wrapper around :meth:`daemon.stop_maestral_daemon_process`
     with command line feedback."""
@@ -335,6 +340,43 @@ def format_table(
     return "\n".join(lines)
 
 
+def _check_config_exists(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """
+    Checks if the selected config name, passed as :param:`value`, is valid.
+
+    :param ctx: Click context to be passed to command.
+    :param param: Name of click parameter, in our case 'config_name'.
+    :param value: Value  of click parameter, in our case the selected config.
+    """
+
+    # check if valid config
+    if value not in list_configs() and not value == "maestral":
+        raise click.ClickException(
+            f"Configuration '{value}' does not exist. You can "
+            f"list all existing configurations with "
+            f"'maestral configs'."
+        )
+
+    return value
+
+
+def _validate_config_name(
+    ctx: click.Context, param: click.Parameter, value: str
+) -> str:
+    """
+    Checks if the selected config name, passed as :param:`value`, is valid.
+
+    :param ctx: Click context to be passed to command.
+    :param param: Name of click parameter, in our case 'config_name'.
+    :param value: Value  of click parameter, in our case the selected config.
+    """
+
+    try:
+        return validate_config_name(value)
+    except ValueError:
+        raise click.ClickException("Configuration name may not contain any whitespace")
+
+
 # ======================================================================================
 # Command groups
 # ======================================================================================
@@ -392,72 +434,9 @@ class SpecialHelpOrder(click.Group):
         return decorator
 
 
-def _check_config_exists(ctx: click.Context, param: click.Parameter, value: str) -> str:
-    """
-    Checks if the selected config name, passed as :param:`value`, is valid.
-
-    :param ctx: Click context to be passed to command.
-    :param param: Name of click parameter, in our case 'config_name'.
-    :param value: Value  of click parameter, in our case the selected config.
-    """
-
-    # check if valid config
-    if value not in list_configs() and not value == "maestral":
-        raise click.ClickException(
-            f"Configuration '{value}' does not exist. You can "
-            f"list all existing configurations with "
-            f"'maestral configs'."
-        )
-
-    return value
-
-
-def _validate_config_name(
-    ctx: click.Context, param: click.Parameter, value: str
-) -> str:
-    """
-    Checks if the selected config name, passed as :param:`value`, is valid.
-
-    :param ctx: Click context to be passed to command.
-    :param param: Name of click parameter, in our case 'config_name'.
-    :param value: Value  of click parameter, in our case the selected config.
-    """
-
-    try:
-        return validate_config_name(value)
-    except ValueError:
-        raise click.ClickException("Configuration name may not contain any whitespace")
-
-
-existing_config_option = click.option(
-    "-c",
-    "--config-name",
-    default="maestral",
-    is_eager=True,
-    expose_value=True,
-    metavar="NAME",
-    callback=_check_config_exists,
-    help="Select an existing configuration for the command.",
-)
-
-config_option = click.option(
-    "-c",
-    "--config-name",
-    default="maestral",
-    is_eager=True,
-    expose_value=True,
-    metavar="NAME",
-    callback=_validate_config_name,
-    help="Run Maestral with the given configuration name.",
-)
-
-
-CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
-
-
 @click.group(
     cls=SpecialHelpOrder,
-    context_settings=CONTEXT_SETTINGS,
+    context_settings={"help_option_names": ["-h", "--help"]},
     invoke_without_command=True,
     no_args_is_help=True,
     help="Maestral Dropbox client for Linux and macOS.",
@@ -501,6 +480,28 @@ def log():
 # ======================================================================================
 # Main commands
 # ======================================================================================
+
+config_option = click.option(
+    "-c",
+    "--config-name",
+    default="maestral",
+    is_eager=True,
+    expose_value=True,
+    metavar="NAME",
+    callback=_validate_config_name,
+    help="Run Maestral with the given configuration name.",
+)
+
+existing_config_option = click.option(
+    "-c",
+    "--config-name",
+    default="maestral",
+    is_eager=True,
+    expose_value=True,
+    metavar="NAME",
+    callback=_check_config_exists,
+    help="Select an existing configuration for the command.",
+)
 
 
 @main.command(help_priority=0, help="Runs Maestral with a GUI.")
