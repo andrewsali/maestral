@@ -1257,18 +1257,28 @@ def install_shell_completion(shell: str):
     home = get_home_dir()
 
     if shell == "fish":
+        # For fish, we just save the shell completion script in
+        # '~/.config/fish/completions' at it will be sourced at startup.
         script_path = osp.join(home, ".config/fish/completions/maestral.fish")
         rc_file = None
         rc_script = None
     elif shell == "bash":
+        # For bash, we save the shell completion script to our data path and
+        # explicitly source it in .bashrc.
         script_path = get_data_path("maestral", "shell-completion-bash.sh")
         rc_file = ".bashrc"
-        rc_script = f"\n. {shlex.quote(script_path)}"
+        rc_script = f"# maestral shell-completion\n{shlex.quote(script_path)}"
 
     elif shell == "zsh":
+        # For zsh, we save the shell completion script to our data path and
+        # explicitly source it in .zshrc. We also run compinit in .zshrc.
         script_path = get_data_path("maestral", "shell-completion-zsh.sh")
         rc_file = ".zshrc"
-        rc_script = f"\n. {shlex.quote(script_path)}"
+        rc_script = f"""
+# maestral shell-completion
+autoload -Uz compinit && compinit
+. {shlex.quote(script_path)}
+"""
     else:
         raise click.ClickException("Unsupported shell")
 
@@ -1289,7 +1299,7 @@ def install_shell_completion(shell: str):
 
         click.echo(f"Updated {rc_file}.")
 
-    click.echo(f"Shell completion installed.")
+    click.echo("Shell completion installed.")
 
 
 @main.command(
