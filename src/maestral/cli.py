@@ -404,9 +404,9 @@ class DropboxPath(click.ParamType):
     name = "Dropbox path"
     envvar_list_splitter = osp.pathsep
 
-    def __init__(self, file_ok: bool = True, dir_ok: bool = True) -> None:
-        self.file_ok = file_ok
-        self.dir_ok = dir_ok
+    def __init__(self, file_okay: bool = True, dir_okay: bool = True) -> None:
+        self.file_okay = file_okay
+        self.dir_okay = dir_okay
 
     def shell_complete(
         self,
@@ -443,12 +443,10 @@ class DropboxPath(click.ParamType):
             with os.scandir(local_dirname) as it:
                 for entry in it:
                     if entry.path.startswith(local_incomplete):
-                        if (
-                            entry.is_dir()
-                            and self.dir_ok
-                            or entry.is_file()
-                            and self.file_ok
-                        ):
+                        if entry.is_dir() and self.dir_okay:
+                            dbx_path = removeprefix(entry.path, dropbox_dir)
+                            matches.append(dbx_path + "/")
+                        elif entry.is_file() and self.file_okay:
                             dbx_path = removeprefix(entry.path, dropbox_dir)
                             matches.append(dbx_path)
 
@@ -976,7 +974,7 @@ def activity(config_name: str) -> None:
 
 
 @main.command(help_priority=10, help="Lists contents of a Dropbox directory.")
-@click.argument("dropbox_path", type=DropboxPath(file_ok=False), default="")
+@click.argument("dropbox_path", type=DropboxPath(file_okay=False), default="")
 @click.option(
     "-l",
     "--long",
