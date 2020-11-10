@@ -8,7 +8,7 @@ from setuptools import setup, find_packages  # type: ignore
 install_requires = [
     "alembic>=1.3.0",
     "bugsnag>=3.4.0",
-    "click>=7.1.1",
+    "click>=8.0.0",
     "dropbox>=10.4.1",
     'dbus-next>=0.1.4;sys_platform=="linux"',
     "fasteners>=0.15",
